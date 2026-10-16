@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fotografías SENATI</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+  margin:0;
+  min-height:100%;
+  font-family:Arial,sans-serif;
+}
+
+body{
+  min-height:100vh;
+  min-height:100dvh;
+  overflow-x:hidden;
+  background:#b9d7ff;
+}
+
+.fondo{
+  position:fixed;
+  inset:0;
+  z-index:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.marcos{
+  position:relative;
+  z-index:1;
+  width:94%;
+  margin:25px auto;
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:25px 2.5%;
+}
+
+.marco-item{
+  position:relative;
+  width:100%;
+  aspect-ratio:1263/1245;
+}
+
+.foto-ventana{
+  position:absolute;
+  left:11.72%;
+  top:11.73%;
+  width:76.64%;
+  height:66.9%;
+  overflow:hidden;
+  background:rgba(255,255,255,.15);
+}
+
+.foto-ventana img{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:cover;
+}
+
+.marco-superpuesto{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  width:100%;
+  height:100%;
+  object-fit:fill;
+  pointer-events:none;
+}
+
+#estadoFotos{
+  position:relative;
+  z-index:3;
+  width:max-content;
+  max-width:94%;
+  margin:15px auto;
+  padding:10px 15px;
+  border-radius:12px;
+  background:white;
+  color:#123579;
+  font-size:14px;
+  text-align:center;
+}
+
+@media(max-width:800px){
+  .marcos{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:15px 3%;
+    margin:15px auto;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<img class="fondo" src="fondofotos.png" alt="">
+
+<main class="marcos" id="marcos"></main>
+
+<div id="estadoFotos" role="status" aria-live="polite">
+  Preparando fotografías...
+</div>
+
+<script>
+const contenedor = document.getElementById("marcos");
+const estado = document.getElementById("estadoFotos");
+
+function mostrarFotos() {
+  contenedor.replaceChildren();
+
+  let fotos = [];
+
+  try {
+    fotos = JSON.parse(
+      sessionStorage.getItem("fotosSeleccionadas") || "[]"
+    );
+
+    if (!Array.isArray(fotos)) {
+      fotos = [];
+    }
+  } catch (error) {
+    fotos = [];
+  }
+
+  // Crear únicamente un marco por cada foto disponible.
+  const fotosValidas = fotos.filter(foto =>
+    typeof foto === "string" && foto.startsWith("data:image/")
+  );
+
+  fotosValidas.forEach((origen, indice) => {
+    const marco = document.createElement("div");
+    marco.className = "marco-item";
+
+    const ventana = document.createElement("div");
+    ventana.className = "foto-ventana";
+
+    const imagen = document.createElement("img");
+    imagen.src = origen;
+    imagen.alt = "Fotografía " + (indice + 1);
+
+    ventana.appendChild(imagen);
+
+    const borde = document.createElement("img");
+    borde.className = "marco-superpuesto";
+    borde.src = "marco.png";
+    borde.alt = "Marco SENATI";
+
+    marco.appendChild(ventana);
+    marco.appendChild(borde);
+
+    contenedor.appendChild(marco);
+  });
+
+  estado.textContent = fotosValidas.length
+    ? fotosValidas.length + " fotografía(s) colocada(s) en sus marcos SENATI."
+    : "Todavía no hay fotografías. Selecciona y sube tus fotos primero.";
+}
+
+mostrarFotos();
+</script>
+
+</body>
+</html>

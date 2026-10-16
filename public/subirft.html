@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0752ff">
+<title>Seleccionar fotos - SENATI</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  font-family:"Trebuchet MS",Arial,sans-serif;
+}
+
+body{
+  min-height:100vh;
+  min-height:100dvh;
+  overflow:hidden;
+  background:#0874e9;
+}
+
+/* FONDO */
+.fondo{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center;
+  z-index:0;
+}
+
+/* PANEL */
+.panel{
+  position:fixed;
+  z-index:2;
+  top:11.5%;
+  right:5.5%;
+  width:clamp(300px,26vw,440px);
+  padding:22px 24px;
+  border:1px solid #2639a9;
+  border-radius:22px;
+  background:rgba(180,215,255,.65);
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:16px;
+}
+
+h1{
+  width:100%;
+  margin:0 0 4px;
+  color:white;
+  font-size:clamp(15px,1.1vw,20px);
+  font-style:italic;
+  text-align:center;
+}
+
+/* BOTONES */
+.btn{
+  width:68%;
+  min-width:210px;
+  height:59px;
+  padding:0 16px;
+  border:0;
+  border-radius:35px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:15px;
+  background:linear-gradient(#111bd4,#080e68);
+  color:#fff;
+  font-family:inherit;
+  font-size:19px;
+  font-weight:bold;
+  font-style:italic;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+
+.btn img{
+  width:38px;
+  height:38px;
+  object-fit:contain;
+}
+
+.btn:active{
+  transform:scale(.97);
+}
+
+.btn-subir{
+  background:linear-gradient(#cf0f50,#680828);
+}
+
+.btn:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+
+/* VISTA PREVIA */
+#previas{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:7px;
+  width:100%;
+}
+
+#previas:empty{
+  display:none;
+}
+
+#previas img{
+  width:100%;
+  aspect-ratio:1;
+  object-fit:cover;
+  border:2px solid white;
+  border-radius:9px;
+}
+
+#estado{
+  width:100%;
+  min-height:18px;
+  color:#09266e;
+  font-size:13px;
+  font-weight:bold;
+  text-align:center;
+  overflow-wrap:anywhere;
+}
+
+input[type="file"]{
+  display:none;
+}
+
+/* ADAPTACIÓN A CELULARES */
+@media(max-width:700px){
+
+  .fondo{
+    object-fit:cover;
+    object-position:center;
+  }
+
+  .panel{
+    top:50%;
+    left:50%;
+    right:auto;
+    transform:translate(-50%,-50%);
+    width:min(88vw,360px);
+    max-height:90dvh;
+    overflow-y:auto;
+    padding:22px 17px;
+    gap:13px;
+    border-radius:22px;
+    background:rgba(160,204,255,.82);
+  }
+
+  h1{
+    font-size:17px;
+    line-height:1.4;
+  }
+
+  .btn{
+    width:100%;
+    min-width:0;
+    height:55px;
+    flex-shrink:0;
+    font-size:18px;
+  }
+
+  .btn img{
+    width:35px;
+    height:35px;
+  }
+
+  #previas{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+
+@media(max-height:500px) and (orientation:landscape){
+  .panel{
+    top:3%;
+    max-height:94dvh;
+    overflow-y:auto;
+    padding:12px 18px;
+    gap:8px;
+  }
+
+  .btn{
+    height:45px;
+  }
+
+  .btn img{
+    height:30px;
+    width:30px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<!-- Coloca tu imagen de fondo en la misma carpeta -->
+<img class="fondo" src="subirFt.png" alt="Estudiantes SENATI en Arequipa">
+
+<section class="panel">
+
+  <h1>Seleccione o tome la foto elegida:</h1>
+
+  <button type="button" class="btn" id="bGaleria">
+    Galería
+    <img src="galeria(1).png" alt="">
+  </button>
+
+  <button type="button" class="btn" id="bCamara">
+    Cámara
+    <img src="camara(20261015-173115).png" alt="">
+  </button>
+
+  <div id="previas"></div>
+
+  <button type="button" class="btn btn-subir" id="bSubir" disabled>
+    Subir
+    <img src="guardar(1).png" alt="">
+  </button>
+
+  <div id="estado" role="status" aria-live="polite">
+    Selecciona una o varias fotos.
+  </div>
+
+</section>
+
+<input type="file" id="fGaleria" accept="image/*" multiple>
+<input type="file" id="fCamara" accept="image/*" capture="environment">
+
+<script>
+const galeria = document.getElementById("fGaleria");
+const camara = document.getElementById("fCamara");
+const previas = document.getElementById("previas");
+const estado = document.getElementById("estado");
+const botonSubir = document.getElementById("bSubir");
+
+let fotos = [];
+
+document.getElementById("bGaleria").addEventListener("click", () => {
+  galeria.click();
+});
+
+document.getElementById("bCamara").addEventListener("click", () => {
+  camara.click();
+});
+
+galeria.addEventListener("change", agregarFotos);
+camara.addEventListener("change", agregarFotos);
+
+function agregarFotos(evento){
+  const seleccionadas = Array.from(evento.target.files || []);
+
+  seleccionadas.forEach(foto => {
+    if(!foto.type.startsWith("image/")) return;
+
+    fotos.push(foto);
+
+    const imagen = document.createElement("img");
+    imagen.alt = "Vista previa";
+    imagen.src = URL.createObjectURL(foto);
+
+    previas.appendChild(imagen);
+  });
+
+  evento.target.value = "";
+
+  botonSubir.disabled = fotos.length === 0;
+
+  estado.textContent = fotos.length
+    ? fotos.length + " foto(s) seleccionada(s)."
+    : "Selecciona una o varias fotos.";
+}
+
+/* Comprime cada fotografía para facilitar el paso a la siguiente página */
+function comprimirFoto(archivo){
+  return new Promise((resolve, reject) => {
+    const lector = new FileReader();
+
+    lector.onerror = () => reject(new Error("No se pudo leer la foto."));
+
+    lector.onload = () => {
+      const imagen = new Image();
+
+      imagen.onerror = () => reject(new Error("Imagen no válida."));
+
+      imagen.onload = () => {
+        const maximo = 1400;
+        const escala = Math.min(
+          1,
+          maximo / Math.max(imagen.width, imagen.height)
+        );
+
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(imagen.width * escala);
+        canvas.height = Math.round(imagen.height * escala);
+
+        const contexto = canvas.getContext("2d");
+        contexto.drawImage(imagen, 0, 0, canvas.width, canvas.height);
+
+        resolve(canvas.toDataURL("image/jpeg", 0.78));
+      };
+
+      imagen.src = lector.result;
+    };
+
+    lector.readAsDataURL(archivo);
+  });
+}
+
+/* Al pulsar Subir, guarda las fotos temporalmente y abre el registro */
+botonSubir.addEventListener("click", async () => {
+  if (!fotos.length) return;
+
+  botonSubir.disabled = true;
+  estado.textContent = "Preparando fotografías...";
+
+  try {
+    // Recuperar las fotos guardadas anteriormente.
+    let anteriores = [];
+
+    try {
+      anteriores = JSON.parse(
+        sessionStorage.getItem("fotosSeleccionadas") || "[]"
+      );
+
+      if (!Array.isArray(anteriores)) anteriores = [];
+    } catch {
+      anteriores = [];
+    }
+
+    // No permitir más de 10 fotos en total.
+    const disponibles = Math.max(0, 10 - anteriores.length);
+
+    if (disponibles === 0) {
+      estado.textContent = "Ya tienes 10 fotos. No puedes añadir más.";
+      botonSubir.disabled = false;
+      return;
+    }
+
+    const seleccionadas = fotos.slice(0, disponibles);
+    const nuevas = [];
+
+    for (let i = 0; i < seleccionadas.length; i++) {
+      estado.textContent =
+        `Preparando foto ${i + 1} de ${seleccionadas.length}...`;
+
+      nuevas.push(await comprimirFoto(seleccionadas[i]));
+    }
+
+    // Unir las fotos anteriores con las recién seleccionadas.
+    const combinadas = [...anteriores, ...nuevas].slice(0, 10);
+
+    // Guardar la colección completa, sin borrar las anteriores.
+    sessionStorage.setItem(
+      "fotosSeleccionadas",
+      JSON.stringify(combinadas)
+    );
+
+    estado.textContent = "Fotos guardadas. Abriendo registro...";
+
+    window.location.href = "registro2.html";
+
+  } catch (error) {
+    console.error(error);
+
+    estado.textContent =
+      "No se pudieron preparar las fotos. Intenta nuevamente.";
+
+    botonSubir.disabled = false;
+  }
+});
+</script>
+
+</body>
+</html>

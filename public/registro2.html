@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0752ff">
+<title>Registro SENATI</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;min-height:100%;font-family:"Trebuchet MS",Arial,sans-serif}
+body{min-height:100vh;min-height:100dvh;overflow:hidden;background:#1683ed}
+.fondo{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:0}
+.formulario{
+  position:fixed;z-index:2;top:9.6%;left:50%;transform:translateX(-64%);
+  width:clamp(340px,25vw,420px);padding:27px 50px 30px;
+  border:1px solid #0752ff;border-radius:30px;background:rgba(166,207,255,.88);
+  display:flex;flex-direction:column;gap:0
+}
+h1{margin:0 0 27px;font-size:27px;font-weight:900;color:#050505;text-align:center}
+.grupo{display:flex;flex-direction:column;gap:6px;margin-bottom:17px}
+.grupo label{color:#111;font-size:16px}
+.campo{
+  display:block;width:100%;height:59px;padding:0 15px;border:1px solid #0752ff;
+  border-radius:35px;background:#fff;color:#111;font-family:inherit;font-size:16px;outline:none
+}
+.campo:focus{box-shadow:0 0 0 2px #0752ff35}
+.campo.invalido{border:2px solid #d71940}
+.autorizacion{display:flex;align-items:flex-start;gap:8px;margin:1px 0 20px;cursor:pointer}
+.autorizacion input{
+  flex:0 0 19px;width:19px;height:19px;margin:0;appearance:none;-webkit-appearance:none;
+  border:1px solid #0752ff;background:#fff;cursor:pointer
+}
+.autorizacion input:checked::after{
+  content:"×";display:block;margin-top:-4px;color:#0752ff;font-size:24px;font-weight:bold;line-height:20px;text-align:center
+}
+.autorizacion span{font-size:12px;line-height:1.5;color:#111}
+.boton{
+  display:block;align-self:center;width:162px;min-height:58px;padding:10px 20px;
+  border:0;border-radius:35px;background:#0845ff;color:#fff;font:900 22px "Trebuchet MS",Arial,sans-serif;cursor:pointer
+}
+.boton:disabled{opacity:.45;cursor:not-allowed}
+#mensaje{margin-top:12px;color:#102c77;font-size:12px;text-align:center;line-height:1.4}
+@media(max-width:700px){
+  body{overflow:auto;min-height:100vh;min-height:100dvh;padding:18px 12px}
+  .fondo{object-fit:cover;object-position:center}
+  .formulario{
+    position:relative;top:auto;left:auto;transform:none;width:100%;max-width:380px;
+    margin:5vh auto 30px;padding:24px 22px;border-radius:24px;
+    background:rgba(190,220,255,.96);max-height:calc(100dvh - 36px);overflow-y:auto
+  }
+  h1{margin-bottom:22px;font-size:25px}
+  .grupo{gap:8px;margin-bottom:17px}
+  .grupo label{font-size:15px}
+  .campo{height:52px;font-size:16px}
+  .autorizacion{margin-top:3px;margin-bottom:18px}
+  .autorizacion span{font-size:13px}
+  .boton{width:162px;min-height:54px;font-size:20px}
+  #mensaje{font-size:13px}
+}
+@media(max-height:560px) and (min-width:701px){
+  body{overflow:auto}
+  .formulario{top:12px;padding-top:18px;padding-bottom:18px;max-height:calc(100dvh - 24px);overflow-y:auto}
+  h1{margin-bottom:15px}.grupo{margin-bottom:10px}.campo{height:46px}.autorizacion{margin-bottom:12px}.boton{min-height:45px}
+}
+</style>
+</head>
+<body>
+<img class="fondo" src="datos.png" alt="">
+
+<form class="formulario" id="formulario" novalidate>
+  <h1>Registrarse</h1>
+
+  <div class="grupo">
+    <label for="nombre">Nombre y Apellido</label>
+    <input class="campo" id="nombre" name="nombre" type="text" autocomplete="name" required>
+  </div>
+
+  <div class="grupo">
+    <label for="contacto">Gmail o número</label>
+    <input class="campo" id="contacto" name="contacto" type="text" autocomplete="email" inputmode="text" required>
+  </div>
+
+  <label class="autorizacion" for="consentimiento">
+    <input id="consentimiento" type="checkbox" required>
+    <span>Autorizo el tratamiento de mis datos personales.</span>
+  </label>
+
+  <button class="boton" id="aceptar" type="submit" disabled>Acepto</button>
+  <div id="mensaje" role="status" aria-live="polite"></div>
+</form>
+
+<script>
+const DB_NAME = "SenatiRegistroDB";
+const DB_VERSION = 1;
+const formulario = document.getElementById("formulario");
+const nombre = document.getElementById("nombre");
+const contacto = document.getElementById("contacto");
+const consentimiento = document.getElementById("consentimiento");
+const aceptar = document.getElementById("aceptar");
+const mensaje = document.getElementById("mensaje");
+
+function abrirDB(){
+  return new Promise((resolve,reject)=>{
+    const request = indexedDB.open(DB_NAME,DB_VERSION);
+    request.onupgradeneeded = ()=>{
+      const db = request.result;
+      if(!db.objectStoreNames.contains("datos")) db.createObjectStore("datos",{keyPath:"id"});
+    };
+    request.onsuccess = ()=>resolve(request.result);
+    request.onerror = ()=>reject(request.error || new Error("No se pudo abrir el almacenamiento"));
+  });
+}
+
+function guardarRegistro(id,datos){
+  return abrirDB().then(db=>new Promise((resolve,reject)=>{
+    const tx = db.transaction("datos","readwrite");
+    tx.objectStore("datos").put({id,...datos});
+    tx.oncomplete = ()=>{db.close();resolve()};
+    tx.onerror = ()=>{db.close();reject(tx.error || new Error("No se pudieron guardar los datos"))};
+    tx.onabort = ()=>{db.close();reject(tx.error || new Error("Guardado cancelado"))};
+  }));
+}
+
+function validarContacto(valor){
+  valor = valor.trim();
+  if(valor.includes("@")) return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor);
+  const digitos = valor.replace(/\D/g,"");
+  return /^[+\d\s().-]+$/.test(valor) && digitos.length >= 9;
+}
+
+function validarFormulario(){
+  const nombreOK = nombre.value.trim().length >= 2;
+  const contactoOK = validarContacto(contacto.value);
+  const autorizacionOK = consentimiento.checked;
+  aceptar.disabled = !(nombreOK && contactoOK && autorizacionOK);
+  nombre.classList.toggle("invalido",nombre.value.trim()!=="" && !nombreOK);
+  contacto.classList.toggle("invalido",contacto.value.trim()!=="" && !contactoOK);
+  return nombreOK && contactoOK && autorizacionOK;
+}
+
+nombre.addEventListener("input",validarFormulario);
+contacto.addEventListener("input",validarFormulario);
+consentimiento.addEventListener("change",validarFormulario);
+
+formulario.addEventListener("submit",async(evento)=>{
+  evento.preventDefault();
+
+  if(!validarFormulario()){
+    if(nombre.value.trim().length < 2){
+      mensaje.textContent = "Completa tu nombre y apellido.";
+      nombre.focus();
+    }else if(!validarContacto(contacto.value)){
+      mensaje.textContent = "Ingresa un correo válido con @ o un celular de mínimo 9 dígitos.";
+      contacto.focus();
+    }else{
+      mensaje.textContent = "Debes marcar la casilla de autorización para continuar.";
+    }
+    return;
+  }
+
+  aceptar.disabled = true;
+  mensaje.textContent = "Guardando tus datos...";
+
+  try{
+    const datos = {
+      nombre:nombre.value.trim(),
+      contacto:contacto.value.trim(),
+      autorizacionDatosPersonales:true,
+      fecha:Date.now()
+    };
+    await guardarRegistro("registro",datos);
+    window.location.href = "fotossubidas.html";
+  }catch(error){
+    mensaje.textContent = "No se pudieron guardar los datos. Intenta nuevamente.";
+    aceptar.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
